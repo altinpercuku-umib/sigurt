@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sigurt
+      POSTGRES_USER: sigurt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sigurt}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigurt -d sigurt"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  backend:
+    build: ./backend
+    environment:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-this-in-production}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      DATABASE_URL: postgres://sigurt:${POSTGRES_PASSWORD:-sigurt}@db:5432/sigurt
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Deletes expired messages and idle rooms every hour.
+  janitor:
+    build: ./backend
+    command: ["sh", "-c", "sleep 30; while true; do python manage.py purge_expired; sleep 3600; done"]
+    environment:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-this-in-production}
+      DATABASE_URL: postgres://sigurt:${POSTGRES_PASSWORD:-sigurt}@db:5432/sigurt
+    depends_on:
+      - backend
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
