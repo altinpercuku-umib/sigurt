@@ -9,6 +9,11 @@
 </p>
 
 <p align="center">
+  <strong><a href="https://sigurt.onrender.com">Try it live at sigurt.onrender.com</a></strong><br />
+  <sub>Hosted on a free server: if nobody has used it for a while, the first visit takes about a minute to wake up.</sub>
+</p>
+
+<p align="center">
   <a href="https://render.com/deploy?repo=https://github.com/altinpercuku-umib/sigurt">
     <img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" />
   </a>
