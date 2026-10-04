@@ -28,6 +28,27 @@ class RoomApiTests(TestCase):
         self.assertEqual(self.client.get("/api/rooms/doesnotexist123/").status_code, 404)
 
 
+class FrontendServingTests(TestCase):
+    def test_serves_index_for_app_routes(self):
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as dist:
+            Path(dist, "index.html").write_text("<!doctype html><title>Sigurt</title>")
+            with override_settings(FRONTEND_DIST=Path(dist)):
+                for path in ("/", "/r/abcdefgh12345678"):
+                    response = self.client.get(path)
+                    self.assertEqual(response.status_code, 200, path)
+                    self.assertIn("Content-Security-Policy", response)
+                    self.assertIn(b"Sigurt", b"".join(response.streaming_content))
+
+    def test_missing_build_is_404(self):
+        from pathlib import Path
+
+        with override_settings(FRONTEND_DIST=Path("/nonexistent")):
+            self.assertEqual(self.client.get("/").status_code, 404)
+
+
 class PurgeTests(TestCase):
     def test_purge_removes_old_messages_and_idle_rooms(self):
         old_room = Room.objects.create()

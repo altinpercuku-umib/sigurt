@@ -1,0 +1,30 @@
+# Render Blueprint: one click creates the Sigurt web service and its PostgreSQL database.
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: sigurt
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    healthCheckPath: /api/health/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sigurt-db
+          property: connectionString
+
+databases:
+  - name: sigurt-db
+    databaseName: sigurt
+    user: sigurt
+    plan: free
+    region: frankfurt

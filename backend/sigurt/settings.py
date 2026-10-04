@@ -46,6 +46,9 @@ if not SECRET_KEY:
         raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is off.")
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Render sets this to the service's public hostname (e.g. sigurt.onrender.com).
+if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 
 INSTALLED_APPS = [
@@ -58,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -116,6 +120,17 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# --- Bundled frontend (single-service deployments) ---------------------------
+# When the React build is copied into the image, Django serves it: WhiteNoise
+# serves files such as /assets/*.js and /favicon.svg, and every other page path
+# returns index.html (see chat.views.spa_index). In development Vite serves the
+# frontend instead and this folder does not exist.
+FRONTEND_DIST = Path(os.environ.get("SIGURT_FRONTEND_DIST", BASE_DIR / "frontend_dist"))
+if FRONTEND_DIST.is_dir():
+    WHITENOISE_ROOT = FRONTEND_DIST
+# Vite puts a content hash in every file name under /assets/, so they can be cached forever.
+WHITENOISE_IMMUTABLE_FILE_TEST = r"^/assets/"
+
 # No IP addresses or request details are written to logs.
 LOGGING = {
     "version": 1,
@@ -129,3 +144,10 @@ SECURE_REFERRER_POLICY = "no-referrer"
 X_FRAME_OPTIONS = "DENY"
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))
+
+# Sent with the app page when Django serves the frontend itself.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; connect-src 'self' ws: wss:; style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+)

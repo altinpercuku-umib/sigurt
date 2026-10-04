@@ -9,6 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://render.com/deploy?repo=https://github.com/altinpercuku-umib/sigurt">
+    <img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" />
+  </a>
+</p>
+
+<p align="center">
   <img src="docs/room-light.png" alt="A Sigurt room with two people chatting" width="820" />
 </p>
 
@@ -86,9 +92,30 @@ sigurt/
 │       ├── lib/useRoom.js   WebSocket connection and message handling
 │       ├── lib/names.js     random name generator
 │       └── pages/           Home and Room screens
+├── Dockerfile               single-image build (used for Render)
+├── render.yaml              one-click Render deployment
 ├── docker-compose.yml
 └── docs/                    logo and screenshots
 ```
+
+## Put it online (free, on Render)
+
+The repo includes a [Render Blueprint](render.yaml) that creates everything in one go: a web service built
+from the root `Dockerfile` (Django serving the compiled React app) and a PostgreSQL database, both in
+Frankfurt.
+
+1. Click **Deploy to Render** at the top of this page and sign in to Render with GitHub.
+2. Review the two resources (`sigurt` and `sigurt-db`) and click **Deploy Blueprint**.
+3. Wait for the first build (a few minutes). Your public link is shown on the `sigurt` service page,
+   e.g. `https://sigurt.onrender.com` (Render adds a suffix if the name is taken).
+
+Things to know about Render's free plan:
+
+- The service goes to sleep after 15 minutes without visitors; the next visit takes about a minute to wake it.
+- **Free databases are deleted 30 days after creation** (with a 14-day grace period). Before then, either upgrade
+  `sigurt-db` or point `DATABASE_URL` at a free PostgreSQL that doesn't expire (for example
+  [Neon](https://neon.tech)). Sigurt stores only short-lived ciphertext, so moving databases loses nothing important.
+- Expired messages are cleaned up on startup and at most hourly while people create rooms.
 
 ## Run it with Docker (easiest)
 
